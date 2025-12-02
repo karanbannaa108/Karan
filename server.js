@@ -11,26 +11,30 @@ const rateLimit = require('express-rate-limit');
 const cookieParser = require('cookie-parser');
 const cors = require('cors');
 const { v4: uuidv4 } = require('uuid');
-const fetch = (...args) => import('node-fetch').then(m => m.default(...args));
 
 const app = express();
+
+// IMPORTANT: trust proxy for correct secure cookie behavior behind Railway/Vercel
+app.set('trust proxy', 1);
+
 const PORT = process.env.PORT || 3000;
 const FRONTEND_URL = process.env.FRONTEND_URL || 'http://localhost:3000';
 const SESSION_SECRET = process.env.SESSION_SECRET || 'change_this';
 const DATABASE_URL = process.env.DATABASE_URL;
+const NODE_ENV = process.env.NODE_ENV || 'development';
 
 if (!DATABASE_URL) {
-  console.error('Missing DATABASE_URL env var. Set it to your Postgres connection string.');
-  // don't exit so dev can still test, but warn
+  console.warn('Missing DATABASE_URL — DB operations will fail until you set it.');
 }
 
 // Postgres pool
 const pool = new Pool({
   connectionString: DATABASE_URL,
-  // In production you might need ssl: { rejectUnauthorized: false } depending on provider
+  // If your provider needs ssl, uncomment:
+  // ssl: { rejectUnauthorized: false }
 });
 
-// DB init: create users table (karanzero_users). Sessions table for connect-pg-simple is created automatically by the library when needed.
+// Initialize DB tables
 async function initDb() {
   await pool.query(`
     CREATE TABLE IF NOT EXISTS karanzero_users (
@@ -43,9 +47,7 @@ async function initDb() {
     );
   `);
 }
-initDb().catch(err => {
-  console.error('DB init error', err);
-});
+initDb().catch(err => console.error('DB init error', err));
 
 // Middlewares
 app.use(helmet());
@@ -58,24 +60,24 @@ app.use(cors({
   credentials: true
 }));
 
-// Session store using Postgres (table name will be karanzero_sessions)
+// Session store using Postgres
 app.use(session({
   store: new PgSession({
     pool: pool,
-    tableName: 'karanzero_sessions' // prefix as requested
+    tableName: 'karanzero_sessions'
   }),
   secret: SESSION_SECRET,
   resave: false,
   saveUninitialized: false,
   cookie: {
-    secure: (process.env.NODE_ENV === 'production'),
+    secure: NODE_ENV === 'production', // requires HTTPS
     httpOnly: true,
-    sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax',
-    maxAge: 1000 * 60 * 60 * 24 // 1 day
+    sameSite: NODE_ENV === 'production' ? 'none' : 'lax',
+    maxAge: 1000 * 60 * 60 * 24
   }
 }));
 
-// Rate limiter for auth endpoints
+// Rate limiter for auth
 const authLimiter = rateLimit({
   windowMs: 60 * 1000,
   max: 8
@@ -92,14 +94,12 @@ async function requireAdmin(req, res, next) {
     const { rows } = await pool.query('SELECT role FROM karanzero_users WHERE id=$1', [req.session.userId]);
     if (!rows[0] || rows[0].role !== 'admin') return res.status(403).json({ error: 'Forbidden' });
     next();
-  } catch (e) {
-    next(e);
-  }
+  } catch (e) { next(e); }
 }
 
 // Routes
 
-// Basic register endpoint (optional)
+// Register (optional)
 app.post('/auth/register', authLimiter, async (req, res) => {
   const { name, password } = req.body;
   if (!name || !password) return res.status(400).json({ error: 'Missing fields' });
@@ -139,8 +139,7 @@ app.post('/auth/logout', (req, res) => {
   });
 });
 
-// Discord OAuth (manual flow)
-// Step 1: redirect user to Discord authorize page
+// Discord OAuth flow
 app.get('/auth/discord', (req, res) => {
   const clientId = process.env.DISCORD_CLIENT_ID;
   const redirect = process.env.DISCORD_REDIRECT;
@@ -149,13 +148,12 @@ app.get('/auth/discord', (req, res) => {
   res.redirect(url);
 });
 
-// Step 2: callback - exchange code for token and fetch user
 app.get('/auth/discord/callback', async (req, res) => {
   const code = req.query.code;
   const clientId = process.env.DISCORD_CLIENT_ID;
   const clientSecret = process.env.DISCORD_CLIENT_SECRET;
   const redirect = process.env.DISCORD_REDIRECT;
-  if (!code || !clientId || !clientSecret || !redirect) return res.redirect('/login.html');
+  if (!code || !clientId || !clientSecret || !redirect) return res.redirect('/');
 
   try {
     const params = new URLSearchParams();
@@ -165,13 +163,14 @@ app.get('/auth/discord/callback', async (req, res) => {
     params.append('code', code);
     params.append('redirect_uri', redirect);
 
+    // Use global fetch (Node 18+)
     const tokenResp = await fetch('https://discord.com/api/oauth2/token', {
       method: 'POST',
       body: params,
       headers: { 'Content-Type': 'application/x-www-form-urlencoded' }
     });
     const tokenJson = await tokenResp.json();
-    if (!tokenJson.access_token) return res.redirect('/login.html');
+    if (!tokenJson.access_token) return res.redirect('/');
 
     const userResp = await fetch('https://discord.com/api/users/@me', {
       headers: { Authorization: `Bearer ${tokenJson.access_token}` }
@@ -183,7 +182,6 @@ app.get('/auth/discord/callback', async (req, res) => {
     const { rows } = await pool.query('SELECT * FROM karanzero_users WHERE discord_id=$1', [dId]);
     if (rows[0]) {
       req.session.userId = rows[0].id;
-      // if user is admin, redirect to admin, else home
       return res.redirect(rows[0].role === 'admin' ? '/admin.html' : '/');
     } else {
       const newId = 'kz_' + uuidv4();
@@ -193,7 +191,7 @@ app.get('/auth/discord/callback', async (req, res) => {
     }
   } catch (err) {
     console.error('Discord callback error', err);
-    return res.redirect('/login.html');
+    return res.redirect('/');
   }
 });
 
@@ -214,7 +212,7 @@ app.get('/me', async (req, res) => {
   res.json(rows[0] || null);
 });
 
-// Static files (frontend)
+// Static files
 app.use(express.static(path.join(__dirname, 'public')));
 
 // Error handler
@@ -223,5 +221,4 @@ app.use((err, req, res, next) => {
   res.status(500).json({ error: 'Server error' });
 });
 
-// Start
 app.listen(PORT, () => console.log(`KaranZeroDay backend listening on ${PORT}`));
