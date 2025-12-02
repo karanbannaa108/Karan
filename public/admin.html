@@ -1,48 +1,39 @@
 <!doctype html>
 <html>
 <head>
-  <meta charset="utf-8"><meta name="viewport" content="width=device-width"><title>Admin — KaranZeroDay</title>
+  <meta charset="utf-8" />
+  <title>Admin — KaranZeroDay</title>
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
   <style>
-    body{font-family:Inter,system-ui;background:#071428;color:#fff;padding:20px}
-    pre{background:#0b1220;padding:12px;border-radius:8px}
-    button{padding:8px;border-radius:8px;border:0;background:#7c3aed;color:white}
+    body{font-family:Inter,system-ui,Arial;background:#061326;color:#fff;padding:20px}
+    table{width:100%;border-collapse:collapse}
+    th,td{padding:8px;border-bottom:1px solid rgba(255,255,255,0.04)}
   </style>
 </head>
 <body>
-  <h1>Admin Panel — KaranZeroDay</h1>
-  <div id="status">Loading admin data...</div>
-  <pre id="info"></pre>
-  <div style="margin-top:12px">
-    <button id="logout">Logout</button>
-    <button id="refresh">Refresh</button>
-  </div>
+  <h1>Admin</h1>
+  <div id="info">Loading...</div>
+  <table id="usersTable"></table>
 
 <script>
-const BASE_API = window.__BASE_API__ || '';
+  const BASE_API = window.BASE_API || '';
 
-async function loadAdmin(){
-  try {
-    const res = await fetch((BASE_API || '') + '/admin-data', { credentials: 'include' });
-    if (res.status === 401 || res.status === 403) {
-      window.location.href = (BASE_API || '') + '/login.html';
+  async function loadAdmin() {
+    const r = await fetch(BASE_API + '/admin-data', { credentials: 'include' });
+    if (r.status === 401 || r.status === 403) {
+      document.getElementById('info').innerText = 'Forbidden / not logged in. Please login as admin.';
       return;
     }
-    const data = await res.json();
-    document.getElementById('status').textContent = 'Admin access OK';
-    document.getElementById('info').textContent = JSON.stringify(data, null, 2);
-  } catch (err) {
-    document.getElementById('status').textContent = 'Error fetching admin data';
+    const j = await r.json();
+    document.getElementById('info').innerText = j.secret || 'Admin data';
+    const t = document.getElementById('usersTable');
+    t.innerHTML = '<tr><th>Id</th><th>Name</th><th>Role</th><th>Discord</th><th>Created</th></tr>';
+    j.users.forEach(u=>{
+      const row = `<tr><td>${u.id}</td><td>${u.name||''}</td><td>${u.role}</td><td>${u.discord_id||''}</td><td>${new Date(Number(u.created_at)).toLocaleString()}</td></tr>`;
+      t.innerHTML += row;
+    });
   }
-}
-
-document.getElementById('logout').addEventListener('click', async ()=>{
-  await fetch((BASE_API || '') + '/auth/logout', { method: 'POST', credentials: 'include' });
-  window.location.href = (BASE_API || '') + '/login.html';
-});
-
-document.getElementById('refresh').addEventListener('click', loadAdmin);
-
-loadAdmin();
+  loadAdmin();
 </script>
 </body>
 </html>
