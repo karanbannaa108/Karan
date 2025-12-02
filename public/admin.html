@@ -1,39 +1,194 @@
 <!doctype html>
 <html>
 <head>
-  <meta charset="utf-8" />
-  <title>Admin — KaranZeroDay</title>
-  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>KaranZeroDay — Admin Panel</title>
   <style>
-    body{font-family:Inter,system-ui,Arial;background:#061326;color:#fff;padding:20px}
-    table{width:100%;border-collapse:collapse}
-    th,td{padding:8px;border-bottom:1px solid rgba(255,255,255,0.04)}
+    body {
+      font-family: Arial;
+      background: #071427;
+      color: #fff;
+      padding: 20px;
+    }
+    .card {
+      max-width: 1000px;
+      margin: 20px auto;
+      background: #0b1723;
+      padding: 20px;
+      border-radius: 10px;
+    }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 12px;
+    }
+    th, td {
+      padding: 8px;
+      border-bottom: 1px solid rgba(255,255,255,0.1);
+    }
+    input, select {
+      padding: 10px;
+      width: 100%;
+      border-radius: 6px;
+      margin: 6px 0;
+      background: #071427;
+      border: 1px solid rgba(255,255,255,0.1);
+      color: #fff;
+    }
+    button {
+      padding: 10px 16px;
+      border-radius: 6px;
+      background: #7b2eff;
+      border: 0;
+      color: #fff;
+      cursor: pointer;
+      margin-top: 10px;
+    }
+    .danger {
+      background: #ff2e4d;
+    }
   </style>
 </head>
 <body>
-  <h1>Admin</h1>
-  <div id="info">Loading...</div>
-  <table id="usersTable"></table>
+
+<div class="card">
+  <h1>KaranZeroDay Admin Panel</h1>
+  <div id="meStatus">Checking admin...</div>
+</div>
+
+<div class="card" id="adminArea" style="display:none">
+
+  <h2>Create New User</h2>
+  <input id="newName" placeholder="Username">
+  <input id="newPwd" type="password" placeholder="Password">
+  <select id="newRole">
+    <option value="Member">Member</option>
+    <option value="admin">Admin</option>
+  </select>
+  <button id="createUser">Create User</button>
+
+</div>
+
+<div class="card" id="usersArea" style="display:none">
+  <h2>All Users</h2>
+  <table>
+    <thead><tr><th>Name</th><th>Role</th><th>Actions</th></tr></thead>
+    <tbody id="usersTable"></tbody>
+  </table>
+</div>
+
+<div class="card" id="botsArea" style="display:none">
+  <h2>All Bots (read-only)</h2>
+  <table>
+    <thead><tr><th>Name</th><th>Owner</th><th>Status</th></tr></thead>
+    <tbody id="botsTable"></tbody>
+  </table>
+</div>
 
 <script>
-  const BASE_API = window.BASE_API || '';
+const BASE = window.BASE_API || "";
 
-  async function loadAdmin() {
-    const r = await fetch(BASE_API + '/admin-data', { credentials: 'include' });
-    if (r.status === 401 || r.status === 403) {
-      document.getElementById('info').innerText = 'Forbidden / not logged in. Please login as admin.';
-      return;
-    }
-    const j = await r.json();
-    document.getElementById('info').innerText = j.secret || 'Admin data';
-    const t = document.getElementById('usersTable');
-    t.innerHTML = '<tr><th>Id</th><th>Name</th><th>Role</th><th>Discord</th><th>Created</th></tr>';
-    j.users.forEach(u=>{
-      const row = `<tr><td>${u.id}</td><td>${u.name||''}</td><td>${u.role}</td><td>${u.discord_id||''}</td><td>${new Date(Number(u.created_at)).toLocaleString()}</td></tr>`;
-      t.innerHTML += row;
-    });
+// Generic request helper
+async function api(path, opts = {}) {
+  opts.credentials = "include";
+  if (opts.body && typeof opts.body === "object") {
+    opts.body = JSON.stringify(opts.body);
+    opts.headers = { "Content-Type": "application/json" };
   }
-  loadAdmin();
+  const r = await fetch(BASE + path, opts);
+  return r.json();
+}
+
+async function loadAdmin() {
+  const me = await api("/me");
+  const meBox = document.getElementById("meStatus");
+
+  if (!me || me.role !== "admin") {
+    meBox.innerHTML = "You are NOT admin. <a href='/login.html' style='color:#9df'>Login</a>";
+    return;
+  }
+
+  meBox.innerHTML = `Logged in as Admin: <b>${me.name}</b>`;
+
+  document.getElementById("adminArea").style.display = "block";
+  document.getElementById("usersArea").style.display = "block";
+  document.getElementById("botsArea").style.display = "block";
+
+  loadUsers();
+  loadBots();
+}
+
+async function loadUsers() {
+  const res = await api("/bots"); // to check backend is active
+  const users = await api("/admin/users"); // (we will add backend route below if missing)
+
+  const tbody = document.getElementById("usersTable");
+  tbody.innerHTML = "";
+
+  users.forEach(u => {
+    const tr = document.createElement("tr");
+    tr.innerHTML = `
+      <td>${u.name}</td>
+      <td>${u.role}</td>
+      <td>
+        <button class="danger" data-id="${u.id}">Delete</button>
+      </td>
+    `;
+    tbody.appendChild(tr);
+  });
+}
+
+// DELETE user
+document.addEventListener("click", async (ev) => {
+  if (ev.target.classList.contains("danger")) {
+    const id = ev.target.dataset.id;
+    if (!confirm("Delete this user?")) return;
+
+    const res = await api("/admin/delete-user", {
+      method: "POST",
+      body: { id }
+    });
+
+    loadUsers();
+  }
+});
+
+// Create new user
+document.getElementById("createUser").onclick = async () => {
+  const name = document.getElementById("newName").value.trim();
+  const password = document.getElementById("newPwd").value;
+  const role = document.getElementById("newRole").value;
+
+  if (!name || !password) return alert("Please fill all fields");
+
+  const res = await api("/admin/create-user", {
+    method: "POST",
+    body: { name, password, role }
+  });
+
+  alert("User created!");
+  loadUsers();
+};
+
+async function loadBots() {
+  const bots = await api("/bots");
+  const tbody = document.getElementById("botsTable");
+  tbody.innerHTML = "";
+
+  bots.forEach(b => {
+    const tr = document.createElement("tr");
+    tr.innerHTML = `
+      <td>${b.name || b.id}</td>
+      <td>${b.owner_id}</td>
+      <td>${b.status}</td>
+    `;
+    tbody.appendChild(tr);
+  });
+}
+
+loadAdmin();
 </script>
+
 </body>
 </html>
