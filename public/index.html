@@ -1,49 +1,39 @@
 <!doctype html>
 <html>
-<head>
-  <meta charset="utf-8" />
-  <title>KaranZeroDay Dashboard</title>
-  <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <style>
-    body{font-family:Inter,system-ui,Arial;background:#061326;color:#fff;padding:20px}
-    .top{max-width:900px;margin:20px auto}
-    .btn{padding:8px 12px;border-radius:8px;background:#7b2eff;border:0;color:#fff;cursor:pointer}
-  </style>
+<head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>KaranZeroDay Dashboard</title>
+<style>
+body{font-family:Arial;background:#071427;color:#fff;padding:20px}
+.card{max-width:900px;margin:20px auto;background:#0b1723;padding:20px;border-radius:10px}
+.btn{padding:8px 12px;border-radius:8px;border:0;background:#7b2eff;color:#fff;cursor:pointer}
+</style>
 </head>
 <body>
-  <div class="top">
-    <h1>KaranZeroDay Dashboard — public demo</h1>
-    <div id="status">Checking login...</div>
-    <button id="logout" class="btn" style="display:none">Logout</button>
-    <div id="adminLink" style="margin-top:12px"></div>
-  </div>
+<div class="card">
+  <h1>KaranZeroDay Dashboard</h1>
+  <div id="status">Checking login...</div>
+  <div id="links" style="margin-top:12px"></div>
+</div>
 
 <script>
-  const BASE_API = window.BASE_API || '';
+const BASE = window.BASE_API || '';
 
-  async function me() {
-    const res = await fetch(BASE_API + '/me', { credentials: 'include' });
-    return res.json();
+async function me(){
+  const r = await fetch(BASE + '/me', { credentials: 'include' });
+  return r.json();
+}
+(async ()=>{
+  const u = await me();
+  const s = document.getElementById('status');
+  const links = document.getElementById('links');
+  if(u){
+    s.innerHTML = `Logged in as ${u.name || 'Discord user'} (${u.role})`;
+    links.innerHTML = '<a href="/bots.html" style="color:#9df;margin-right:12px">Manage Bots</a> <a href="/py-upload.html" style="color:#9df">Upload Python Bot</a>';
+    if(u.role==='admin') links.innerHTML += ' <a href="/admin.html" style="color:#f99;margin-left:12px">Admin</a>';
+  } else {
+    s.innerHTML = 'Not logged in. <a href="/login.html" style="color:#9df">Login</a>';
   }
-
-  (async () => {
-    const u = await me();
-    const status = document.getElementById('status');
-    if(u) {
-      status.innerText = `Logged in as ${u.name || u.discord_id || 'Discord user'}. Role: ${u.role}`;
-      document.getElementById('logout').style.display = 'inline-block';
-      if(u.role === 'admin') {
-        document.getElementById('adminLink').innerHTML = '<a href="/admin.html" style="color:#9df">Go to admin</a>';
-      }
-    } else {
-      status.innerHTML = 'Not logged in. <a href="/login.html">Login</a>';
-    }
-  })();
-
-  document.getElementById('logout').addEventListener('click', async () => {
-    await fetch(BASE_API + '/auth/logout', { method:'POST', credentials:'include' });
-    location.reload();
-  });
+})();
 </script>
 </body>
 </html>
