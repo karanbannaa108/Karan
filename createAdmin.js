@@ -1,30 +1,26 @@
-// createAdmin.js — run one time to create admin
+// createAdmin.js
 require('dotenv').config();
-const sqlite3 = require('sqlite3').verbose();
+const { Pool } = require('pg');
 const bcrypt = require('bcrypt');
-const path = require('path');
 const readline = require('readline');
+const { v4: uuidv4 } = require('uuid');
 
-const DB_FILE = path.join(__dirname, 'database.sqlite');
-const db = new sqlite3.Database(DB_FILE);
+const pool = new Pool({ connectionString: process.env.DATABASE_URL });
 
 const rl = readline.createInterface({ input: process.stdin, output: process.stdout });
 
-rl.question('Admin username: ', (username) => {
-  rl.question('Admin password (will be hashed): ', async (password) => {
-    const hash = await bcrypt.hash(password, 12);
-    const id = 'u_' + (Math.random().toString(36).slice(2,9));
-    const created_at = Date.now();
-    db.run('INSERT INTO users(id,name,password_hash,role,created_at) VALUES(?,?,?,?,?)',
-      [id, username, hash, 'admin', created_at],
-      function (err) {
-        if (err) {
-          console.error('Error creating admin (maybe user exists):', err);
-        } else {
-          console.log('Admin created with id', id);
-        }
-        db.close();
-        rl.close();
-      });
+rl.question('Admin username: ', (name) => {
+  rl.question('Admin password: ', async (pwd) => {
+    const hash = await bcrypt.hash(pwd, 12);
+    const id = 'kz_' + uuidv4();
+    try {
+      await pool.query('INSERT INTO karanzero_users(id,name,password_hash,role,created_at) VALUES($1,$2,$3,$4,$5)', [id, name, hash, 'admin', Date.now()]);
+      console.log('Admin created:', name);
+    } catch (err) {
+      console.error('Error creating admin:', err);
+    } finally {
+      await pool.end();
+      process.exit(0);
+    }
   });
 });
