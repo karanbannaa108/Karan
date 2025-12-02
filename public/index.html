@@ -1,0 +1,343 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>KaranZeroDay — Dashboard (Real Working)</title>
+  <meta name="description" content="KaranZeroDay modern animated dashboard — responsive admin UI with persistent data (localStorage), live activity feed, user CRUD, messages and export/import. Ready to deploy." />
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700;800&display=swap" rel="stylesheet">
+  <style>
+    :root{--bg:#071428;--panel:#091826;--muted:#9fb0c8;--accent:#7c3aed;--accent-2:#06b6d4;--glass:rgba(255,255,255,0.03)}
+    *{box-sizing:border-box}
+    html,body{height:100%;margin:0;font-family:Inter,system-ui,-apple-system,Segoe UI,Roboto,'Helvetica Neue',Arial;color:#e6eef8;background:linear-gradient(180deg,#06111b 0%, #071428 100%);} 
+    a{color:inherit;text-decoration:none}
+
+    .app{display:flex;height:100vh;gap:20px;padding:20px}
+    .sidebar{width:260px;background:linear-gradient(180deg, rgba(255,255,255,0.02), rgba(255,255,255,0.01));border-radius:14px;padding:18px;border:1px solid rgba(255,255,255,0.03);box-shadow:0 10px 40px rgba(2,6,23,0.6)}
+    .content{flex:1;display:flex;flex-direction:column;gap:18px}
+
+    .brand{display:flex;align-items:center;gap:12px;margin-bottom:14px}
+    .logo{width:46px;height:46px;border-radius:10px;background:linear-gradient(135deg,var(--accent),var(--accent-2));display:flex;align-items:center;justify-content:center;font-weight:800;color:white}
+    .nav{display:flex;flex-direction:column;gap:8px;margin-top:12px}
+    .nav a{padding:10px;border-radius:10px;color:var(--muted);font-weight:600;display:flex;align-items:center;gap:10px}
+    .nav a.active{background:linear-gradient(90deg,var(--accent),var(--accent-2));color:white}
+
+    .topbar{display:flex;justify-content:space-between;align-items:center;padding:12px;border-radius:12px;background:linear-gradient(180deg, rgba(255,255,255,0.02), rgba(255,255,255,0.01));border:1px solid rgba(255,255,255,0.03)}
+    .search{flex:1;margin:0 18px}
+    .search input{width:100%;padding:10px;border-radius:10px;border:1px solid rgba(255,255,255,0.05);background:transparent;color:#e6eef8}
+
+    .grid{display:grid;grid-template-columns:repeat(3,1fr);gap:14px}
+    .card{padding:16px;border-radius:12px;background:var(--panel);border:1px solid rgba(255,255,255,0.03);box-shadow:0 8px 30px rgba(2,6,23,0.6)}
+    .card h3{margin:0 0 8px}
+    .muted{color:var(--muted);font-size:13px}
+
+    .spark{height:48px}
+    .spark svg{width:100%;height:48px}
+
+    .panel{padding:12px;border-radius:12px;background:linear-gradient(180deg, rgba(255,255,255,0.02), rgba(255,255,255,0.01));border:1px solid rgba(255,255,255,0.03)}
+    table{width:100%;border-collapse:collapse}
+    th,td{padding:10px;text-align:left;border-bottom:1px dashed rgba(255,255,255,0.02);font-size:14px}
+
+    .kpi{display:flex;gap:12px;align-items:center}
+    .kpi .icon{width:44px;height:44px;border-radius:10px;display:flex;align-items:center;justify-content:center;background:linear-gradient(135deg,var(--accent),var(--accent-2));font-weight:800}
+
+    footer{display:flex;justify-content:space-between;align-items:center;color:var(--muted);padding:10px}
+
+    @media (max-width:980px){.grid{grid-template-columns:repeat(2,1fr)}.sidebar{display:none}.app{padding:12px}}
+    @media (max-width:600px){.grid{grid-template-columns:1fr}}
+
+    .fade-in{animation:fadeIn .6s ease both}
+    @keyframes fadeIn{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}
+
+    .pulse{animation:pulse 2.4s infinite}
+    @keyframes pulse{0%{box-shadow:0 0 0 0 rgba(124,58,237,0.18)}70%{box-shadow:0 0 0 14px rgba(124,58,237,0)}100%{box-shadow:0 0 0 0 rgba(124,58,237,0)}}
+
+    .card, .nav a{transition:transform .12s ease, box-shadow .12s ease}
+    .card:hover{transform:translateY(-6px)}
+
+    .form-row{display:flex;gap:8px}
+    input,textarea,select,button{font-family:inherit}
+    .input{padding:10px;border-radius:10px;border:1px solid rgba(255,255,255,0.05);background:transparent;color:#e6eef8}
+    .btn{padding:8px 12px;border-radius:10px;border:0;cursor:pointer;background:linear-gradient(90deg,var(--accent),var(--accent-2));color:white;font-weight:700}
+    .btn.ghost{background:transparent;border:1px solid rgba(255,255,255,0.06);color:var(--muted)}
+  </style>
+</head>
+<body>
+  <div class="app">
+    <aside class="sidebar fade-in">
+      <div class="brand">
+        <div class="logo">KZ</div>
+        <div>
+          <div style="font-weight:800">KaranZeroDay</div>
+          <div class="muted" style="font-size:13px">Admin Dashboard</div>
+        </div>
+      </div>
+
+      <div class="nav">
+        <a class="active" data-tab="overview" href="#">Overview</a>
+        <a data-tab="users" href="#">Users</a>
+        <a data-tab="messages" href="#">Messages</a>
+        <a data-tab="settings" href="#">Settings</a>
+      </div>
+
+      <div style="margin-top:20px">
+        <div class="muted" style="font-size:13px;margin-bottom:8px">Channels</div>
+        <div style="display:flex;gap:8px;flex-wrap:wrap">
+          <a class="card" style="padding:8px;border-radius:10px;display:inline-flex" href="https://www.instagram.com/karanzeroday?igsh=MW9zZXlicmp0emt0OQ==" target="_blank">IG</a>
+          <a class="card" style="padding:8px;border-radius:10px;display:inline-flex" href="https://discord.gg/mq3sufFrtq" target="_blank">Discord</a>
+          <a class="card" style="padding:8px;border-radius:10px;display:inline-flex" href="https://t.me/karanbannaa108" target="_blank">TG</a>
+        </div>
+      </div>
+
+      <div style="margin-top:18px;display:flex;gap:8px">
+        <button id="exportBtn" class="btn">Export JSON</button>
+        <label for="importFile" class="btn ghost" style="display:inline-block;cursor:pointer">Import</label>
+        <input type="file" id="importFile" accept="application/json" style="display:none" />
+      </div>
+    </aside>
+
+    <main class="content">
+      <div class="topbar">
+        <div style="display:flex;align-items:center;gap:12px">
+          <button onclick="toggleSidebar()" class="btn ghost">☰</button>
+          <div style="font-weight:700">Overview</div>
+        </div>
+        <div class="search"><input placeholder="Search users, messages, projects... (press '/')" id="q" class="input"></div>
+        <div style="display:flex;gap:12px;align-items:center">
+          <div class="muted">Hi, human 👋</div>
+          <div class="kpi" style="gap:8px">
+            <div class="icon pulse">KZ</div>
+            <div style="text-align:right">
+              <div style="font-weight:800">Creator</div>
+              <div class="muted">Live</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <section id="overview" class="tab">
+        <div class="grid">
+          <div class="card fade-in">
+            <h3>Visitors</h3>
+            <div style="display:flex;justify-content:space-between;align-items:center">
+              <div style="font-size:26px;font-weight:800" id="visCount">12,349</div>
+              <div class="muted">+8.4% vs last week</div>
+            </div>
+            <div class="spark" id="spark1"></div>
+          </div>
+
+          <div class="card fade-in">
+            <h3>New Subscribers</h3>
+            <div style="display:flex;justify-content:space-between;align-items:center">
+              <div style="font-size:26px;font-weight:800" id="subCount">1,249</div>
+              <div class="muted">+4.1% vs last week</div>
+            </div>
+            <div class="spark" id="spark2"></div>
+          </div>
+
+          <div class="card fade-in">
+            <h3>Revenue</h3>
+            <div style="display:flex;justify-content:space-between;align-items:center">
+              <div style="font-size:26px;font-weight:800" id="rev">₹34,560</div>
+              <div class="muted">Monthly</div>
+            </div>
+            <div style="margin-top:8px" class="muted">Estimated payouts and conversions</div>
+          </div>
+        </div>
+
+        <div style="display:flex;gap:14px;align-items:flex-start;margin-top:14px">
+          <div style="flex:1" class="panel fade-in">
+            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
+              <div style="font-weight:800">Recent activity</div>
+              <div class="muted">Live</div>
+            </div>
+            <ul id="activity" style="list-style:none;padding-left:0;margin:0"></ul>
+          </div>
+
+          <div style="width:420px" class="panel fade-in">
+            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
+              <div style="font-weight:800">Quick actions</div>
+              <div class="muted">Add user / message</div>
+            </div>
+            <div style="display:flex;flex-direction:column;gap:8px">
+              <input id="quickName" class="input" placeholder="User name" />
+              <div style="display:flex;gap:8px">
+                <select id="quickRole" class="input"><option>Member</option><option>Moderator</option><option>Creator</option></select>
+                <button id="addUserBtn" class="btn">Add User</button>
+              </div>
+              <textarea id="quickMsg" class="input" placeholder="Write a quick message..."></textarea>
+              <div style="display:flex;gap:8px">
+                <button id="sendMsgBtn" class="btn">Send Message</button>
+                <button id="clearData" class="btn ghost">Clear Data</button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section id="users" class="tab" style="display:none">
+        <div class="panel fade-in">
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
+            <div style="font-weight:800">Users</div>
+            <div class="muted">Manage users (saved in browser)</div>
+          </div>
+
+          <div style="display:flex;gap:8px;margin-bottom:8px">
+            <input id="uName" class="input" placeholder="Name" />
+            <select id="uRole" class="input"><option>Member</option><option>Moderator</option><option>Creator</option></select>
+            <button id="createUser" class="btn">Create</button>
+          </div>
+
+          <table id="usersTable"><thead><tr><th>Name</th><th>Role</th><th>Actions</th></tr></thead><tbody></tbody></table>
+        </div>
+      </section>
+
+      <section id="messages" class="tab" style="display:none">
+        <div class="panel fade-in">
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
+            <div style="font-weight:800">Messages</div>
+            <div class="muted">Send messages, store and export</div>
+          </div>
+
+          <div style="display:flex;gap:8px;margin-bottom:8px">
+            <input id="mFrom" class="input" placeholder="From (name)" />
+            <input id="mText" class="input" placeholder="Message text" />
+            <button id="createMsg" class="btn">Send</button>
+          </div>
+
+          <ul id="messagesList" style="list-style:none;padding-left:0;margin:0"></ul>
+        </div>
+      </section>
+
+      <section id="settings" class="tab" style="display:none">
+        <div class="panel fade-in">
+          <div style="font-weight:800;margin-bottom:8px">Settings</div>
+          <div class="muted" style="margin-bottom:8px">Local demo settings — persistent in your browser</div>
+          <div style="display:flex;gap:8px;align-items:center">
+            <label class="muted">Theme accent</label>
+            <input id="accent" type="color" value="#7c3aed" />
+            <button id="saveSettings" class="btn">Save</button>
+          </div>
+        </div>
+      </section>
+
+      <footer>
+        <div class="muted">KaranZeroDay Dashboard — built for humans • © 2025</div>
+        <div style="display:flex;gap:10px">
+          <a class="muted" href="https://youtube.com/@karanzeroday?si=Te6dsWN8Dbs8X7_r" target="_blank">YouTube</a>
+          <a class="muted" href="https://www.instagram.com/karanzeroday?igsh=MW9zZXlicmp0emt0OQ==" target="_blank">Instagram</a>
+        </div>
+      </footer>
+    </main>
+  </div>
+
+  <script>
+    // Use BASE_API if set globally by deploy (Vercel can inject)
+    const BASE_API = window.__BASE_API__ || '';
+
+    // --- Utilities: storage & helpers ---
+    const STORAGE_KEY = 'kz_dashboard_v1';
+    function loadState(){ try{const raw=localStorage.getItem(STORAGE_KEY); if(!raw) return null; return JSON.parse(raw);}catch(e){console.error('load',e);return null} }
+    function saveState(state){localStorage.setItem(STORAGE_KEY, JSON.stringify(state));}
+
+    const defaultState = {
+      users:[{id:uid(),name:'Karan',role:'Creator'},{id:uid(),name:'Rahul',role:'Member'},{id:uid(),name:'Priya',role:'Moderator'}],
+      messages:[],
+      activity:[],
+      visitors:12349, subscribers:1249, revenue:34560,
+      settings:{accent:'#7c3aed'}
+    };
+
+    function uid(){return 'id_'+Math.random().toString(36).slice(2,9)}
+    let state = loadState() || defaultState;
+    saveState(state);
+
+    // UI wiring
+    const tabs = document.querySelectorAll('.nav a');
+    tabs.forEach(t=>t.addEventListener('click', (e)=>{e.preventDefault();switchTab(t.dataset.tab);}));
+    function switchTab(tab){
+      document.querySelectorAll('.tab').forEach(el=>el.style.display='none');
+      const el = document.getElementById(tab);
+      if(el) el.style.display='block';
+      document.querySelectorAll('.nav a').forEach(a=>a.classList.toggle('active', a.dataset.tab===tab));
+    }
+    switchTab('overview');
+
+    // export/import
+    document.getElementById('exportBtn').addEventListener('click', ()=>{
+      const dataStr = JSON.stringify(state, null, 2);
+      const blob = new Blob([dataStr], {type: 'application/json'});
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a'); a.href=url; a.download='kz-dashboard-export.json'; document.body.appendChild(a); a.click(); a.remove(); URL.revokeObjectURL(url);
+    });
+    document.getElementById('importFile').addEventListener('change', async (e)=>{
+      const file = e.target.files[0]; if(!file) return; const txt = await file.text(); try{const imported = JSON.parse(txt); state = imported; saveState(state); renderAll(); alert('Import OK');}catch(err){alert('Invalid JSON')}
+      e.target.value='';
+    });
+
+    // quick actions
+    document.getElementById('addUserBtn').addEventListener('click', ()=>{
+      const name = document.getElementById('quickName').value.trim(); const role = document.getElementById('quickRole').value;
+      if(!name) return alert('Enter name'); const u={id:uid(),name,role}; state.users.unshift(u); pushActivity('User added: '+name); saveState(state); renderUsers(); renderActivity(); document.getElementById('quickName').value='';
+    });
+    document.getElementById('sendMsgBtn').addEventListener('click', ()=>{
+      const from='Karan'; const text=document.getElementById('quickMsg').value.trim(); if(!text) return alert('Enter message'); const m={id:uid(),from,text,ts:Date.now()}; state.messages.unshift(m); pushActivity('Message sent: '+text.slice(0,30)); saveState(state); renderMessages(); renderActivity(); document.getElementById('quickMsg').value='';
+    });
+
+    document.getElementById('createUser').addEventListener('click', ()=>{
+      const name=document.getElementById('uName').value.trim(); const role=document.getElementById('uRole').value; if(!name) return alert('Name'); const u={id:uid(),name,role}; state.users.unshift(u); pushActivity('User created: '+name); saveState(state); renderUsers(); document.getElementById('uName').value='';
+    });
+
+    document.getElementById('createMsg').addEventListener('click', ()=>{
+      const from=document.getElementById('mFrom').value.trim(); const text=document.getElementById('mText').value.trim(); if(!from||!text) return alert('Fill fields'); const m={id:uid(),from,text,ts:Date.now()}; state.messages.unshift(m); pushActivity('Message from '+from); saveState(state); renderMessages(); document.getElementById('mFrom').value=''; document.getElementById('mText').value='';
+    });
+
+    document.getElementById('clearData').addEventListener('click', ()=>{
+      if(!confirm('Clear all app data from this browser?')) return; state = JSON.parse(JSON.stringify(defaultState)); saveState(state); renderAll(); alert('Data cleared');
+    });
+
+    document.getElementById('saveSettings').addEventListener('click', ()=>{
+      const val = document.getElementById('accent').value; document.documentElement.style.setProperty('--accent', val); state.settings.accent=val; saveState(state); alert('Saved');
+    });
+    document.documentElement.style.setProperty('--accent', state.settings.accent || '#7c3aed');
+
+    function randomDelta(){return Math.floor(Math.random()*60)-20}
+    function liveNumbers(){ state.visitors = Math.max(0, state.visitors + randomDelta()); state.subscribers = Math.max(0, state.subscribers + Math.floor(Math.random()*5)); state.revenue = Math.max(0, state.revenue + Math.floor(Math.random()*100)); saveState(state); renderNumbers(); }
+    setInterval(liveNumbers,5000);
+
+    function pushActivity(text){ state.activity.unshift({id:uid(),text,ts:Date.now()}); if(state.activity.length>80) state.activity.pop(); }
+
+    function renderNumbers(){ document.getElementById('visCount').textContent = state.visitors.toLocaleString(); document.getElementById('subCount').textContent = state.subscribers.toLocaleString(); document.getElementById('rev').textContent = '₹'+state.revenue.toLocaleString(); }
+
+    function renderActivity(){ const el=document.getElementById('activity'); el.innerHTML=''; state.activity.slice(0,12).forEach(a=>{ const li=document.createElement('li'); li.style.padding='8px 0'; li.style.display='flex'; li.style.justifyContent='space-between'; li.className='muted'; const d=new Date(a.ts); li.innerHTML = '<div>'+a.text+'</div><div class=\"muted\">'+timeAgo(d)+'</div>'; el.appendChild(li); }); }
+
+    function timeAgo(d){ const s=Math.floor((Date.now()-d)/1000); if(s<60) return s+'s'; if(s<3600) return Math.floor(s/60)+'m'; if(s<86400) return Math.floor(s/3600)+'h'; return Math.floor(s/86400)+'d'; }
+
+    function renderUsers(){ const tbody=document.querySelector('#usersTable tbody'); tbody.innerHTML=''; state.users.forEach(u=>{ const tr=document.createElement('tr'); tr.innerHTML = `<td>${escapeHtml(u.name)}</td><td>${escapeHtml(u.role)}</td><td><button class=\"btn ghost\" data-id=\"${u.id}\" onclick=\"editUser('${u.id}')\">Edit</button> <button class=\"btn ghost\" onclick=\"deleteUser('${u.id}')\">Delete</button></td>`; tbody.appendChild(tr); }); }
+
+    function escapeHtml(s){ return String(s).replace(/[&<>\\\"]/g, c=>({'&':'&amp;','<':'&lt;','>':'&gt;','\"':'&quot;'}[c])); }
+
+    window.editUser = function(id){ const u = state.users.find(x=>x.id===id); if(!u) return; const newName = prompt('Edit name', u.name); if(newName===null) return; const newRole = prompt('Edit role (Creator/Member/Moderator)', u.role); if(newRole===null) return; u.name=newName; u.role=newRole; saveState(state); renderUsers(); pushActivity('User edited: '+u.name); renderActivity(); }
+    window.deleteUser = function(id){ if(!confirm('Delete user?')) return; state.users = state.users.filter(x=>x.id!==id); saveState(state); renderUsers(); pushActivity('User deleted'); renderActivity(); }
+
+    function renderMessages(){ const el=document.getElementById('messagesList'); el.innerHTML=''; state.messages.forEach(m=>{ const li=document.createElement('li'); li.style.padding='8px 0'; li.style.borderBottom='1px dashed rgba(255,255,255,0.02)'; li.innerHTML = `<div style=\"display:flex;justify-content:space-between\"><div><strong>${escapeHtml(m.from)}</strong> <span class=\"muted\">${new Date(m.ts).toLocaleString()}</span><div>${escapeHtml(m.text)}</div></div><div><button class=\"btn ghost\" onclick=\"removeMsg('${m.id}')\">Delete</button></div></div>`; el.appendChild(li); }); }
+    window.removeMsg = function(id){ if(!confirm('Delete message?')) return; state.messages = state.messages.filter(x=>x.id!==id); saveState(state); renderMessages(); pushActivity('Message deleted'); renderActivity(); }
+
+    function renderAll(){ renderNumbers(); renderActivity(); renderUsers(); renderMessages(); }
+    renderAll();
+
+    function drawSpark(id, points){ const el=document.getElementById(id); if(!el) return; const w=el.clientWidth||300; const h=48; const max=Math.max(...points); const min=Math.min(...points); const step=w/(points.length-1); const coords=points.map((p,i)=>{const x=i*step; const y=h - ((p-min)/(max-min||1))*(h-8); return x+','+y}).join(' '); const svg=`<svg viewBox=\"0 0 ${w} ${h}\" preserveAspectRatio=\"none\"><polyline points=\"${coords}\" fill=\"none\" stroke=\"url(#g)\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\" /></svg>`; const grad = '<svg width=\"0\" height=\"0\" style=\"position:absolute\"> <defs> <linearGradient id=\"g\" x1=\"0\" x2=\"1\"> <stop offset=\"0%\" stop-color=\"'+(getComputedStyle(document.documentElement).getPropertyValue('--accent')||'#7c3aed').trim()+'\"/> <stop offset=\"100%\" stop-color=\"'+(getComputedStyle(document.documentElement).getPropertyValue('--accent-2')||'#06b6d4').trim()+'\"/> </linearGradient> </defs></svg>'; el.innerHTML = grad + svg; }
+    let s1 = [10,12,8,14,16,13,18,15,17,19,21,20]; let s2=[2,3,5,4,6,8,7,9,10,12,11,14];
+    function animateSparks(){ for(let i=0;i<s1.length;i++){s1[i] = Math.max(2, Math.round(s1[i] + (Math.random()*4-2)));} for(let i=0;i<s2.length;i++){s2[i] = Math.max(1, Math.round(s2[i] + (Math.random()*3-1.5)));} drawSpark('spark1', s1); drawSpark('spark2', s2); }
+    animateSparks(); setInterval(animateSparks,3000); window.addEventListener('resize', ()=>{animateSparks()});
+
+    document.getElementById('q').addEventListener('input',(e)=>{ const v=e.target.value.toLowerCase(); document.querySelectorAll('#usersTable tbody tr').forEach(tr=>{ tr.style.display = tr.textContent.toLowerCase().includes(v)?'':'none' }); document.querySelectorAll('#messagesList li').forEach(li=>{ li.style.display = li.textContent.toLowerCase().includes(v)?'':'none' }); });
+
+    document.addEventListener('keydown', e=>{ if(e.key==='/' ){ e.preventDefault(); document.getElementById('q').focus(); } });
+
+    if(state.activity.length===0){ pushActivity('Welcome to KaranZeroDay dashboard — local demo'); saveState(state); renderActivity(); }
+  </script>
+</body>
+</html>
