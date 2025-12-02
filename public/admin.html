@@ -1,0 +1,48 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8"><meta name="viewport" content="width=device-width"><title>Admin — KaranZeroDay</title>
+  <style>
+    body{font-family:Inter,system-ui;background:#071428;color:#fff;padding:20px}
+    pre{background:#0b1220;padding:12px;border-radius:8px}
+    button{padding:8px;border-radius:8px;border:0;background:#7c3aed;color:white}
+  </style>
+</head>
+<body>
+  <h1>Admin Panel — KaranZeroDay</h1>
+  <div id="status">Loading admin data...</div>
+  <pre id="info"></pre>
+  <div style="margin-top:12px">
+    <button id="logout">Logout</button>
+    <button id="refresh">Refresh</button>
+  </div>
+
+<script>
+const BASE_API = window.__BASE_API__ || '';
+
+async function loadAdmin(){
+  try {
+    const res = await fetch((BASE_API || '') + '/admin-data', { credentials: 'include' });
+    if (res.status === 401 || res.status === 403) {
+      window.location.href = (BASE_API || '') + '/login.html';
+      return;
+    }
+    const data = await res.json();
+    document.getElementById('status').textContent = 'Admin access OK';
+    document.getElementById('info').textContent = JSON.stringify(data, null, 2);
+  } catch (err) {
+    document.getElementById('status').textContent = 'Error fetching admin data';
+  }
+}
+
+document.getElementById('logout').addEventListener('click', async ()=>{
+  await fetch((BASE_API || '') + '/auth/logout', { method: 'POST', credentials: 'include' });
+  window.location.href = (BASE_API || '') + '/login.html';
+});
+
+document.getElementById('refresh').addEventListener('click', loadAdmin);
+
+loadAdmin();
+</script>
+</body>
+</html>
