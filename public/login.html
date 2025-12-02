@@ -1,67 +1,33 @@
 <!doctype html>
 <html>
-<head>
-  <meta charset="utf-8" />
-  <title>KaranZeroDay — Login</title>
-  <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <style>
-    body{font-family:Inter,system-ui,Arial;background:#071022;color:#fff;padding:32px}
-    .card{max-width:480px;margin:40px auto;padding:28px;border-radius:12px;background:#0b1723;box-shadow:0 6px 18px rgba(0,0,0,0.5)}
-    input{width:100%;padding:12px;margin:10px 0;border-radius:8px;border:1px solid rgba(255,255,255,0.06);background:#091221;color:#fff}
-    button{width:100%;padding:12px;border:0;border-radius:8px;margin-top:8px;cursor:pointer}
-    .primary{background:linear-gradient(90deg,#7b2eff,#5fb6ff);color:#fff}
-    .discord{background:#5865f2;color:#fff}
-    .note{font-size:12px;color:#9aa6b2;margin-top:10px}
-  </style>
+<head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Login</title>
+<style>body{font-family:Arial;background:#071427;color:#fff;padding:30px}.card{max-width:480px;margin:auto;background:#0b1723;padding:20px;border-radius:10px}input{width:100%;padding:10px;margin:8px 0;border-radius:6px;border:1px solid rgba(255,255,255,0.05);background:#071427;color:#fff}button{padding:10px;border-radius:6px;background:#7b2eff;color:#fff;border:0;cursor:pointer}</style>
 </head>
 <body>
-  <div class="card">
-    <h2>KaranZeroDay — Login</h2>
-    <input id="name" placeholder="Username" />
-    <input id="password" type="password" placeholder="Password" />
-    <button id="loginBtn" class="primary">Login</button>
-    <button id="discordBtn" class="discord">Login with Discord</button>
-    <div class="note">If frontend and backend are on different domains, cookies will be sent with credentials. Make sure FRONTEND_URL is configured on the backend.</div>
-  </div>
+<div class="card">
+  <h2>Login</h2>
+  <input id="name" placeholder="username">
+  <input id="password" type="password" placeholder="password">
+  <button id="login">Login</button>
+  <div style="margin-top:8px"><button id="discord">Login with Discord</button></div>
+</div>
 
 <script>
-  // Set BASE_API to your Railway backend URL. If you leave empty, it will use relative path.
-  const BASE_API = window.BASE_API || ''; // set by server-deployer or edit this file to the exact URL
-
-  async function postJSON(url, data){
-    const res = await fetch(url, {
-      method:'POST',
-      credentials: 'include',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(data)
-    });
-    return res.json();
-  }
-
-  document.getElementById('loginBtn').addEventListener('click', async () => {
-    const name = document.getElementById('name').value.trim();
-    const password = document.getElementById('password').value;
-    if(!name || !password){ alert('Enter name and password'); return; }
-    const resp = await postJSON((BASE_API||'') + '/auth/login', { name, password });
-    if(resp.success) { alert('Logged in'); location.reload(); }
-    else alert(resp.error || 'Login failed');
+const BASE = window.BASE_API || '';
+document.getElementById('login').onclick = async ()=>{
+  const name = document.getElementById('name').value.trim();
+  const password = document.getElementById('password').value;
+  const r = await fetch(BASE + '/auth/login', {
+    method:'POST', credentials:'include',
+    headers:{'Content-Type':'application/json'},
+    body: JSON.stringify({ name, password })
   });
-
-  document.getElementById('discordBtn').onclick = () => {
-    window.location.href = (BASE_API||'') + '/auth/discord';
-  };
-
-  // Simple check for login
-  (async () => {
-    try {
-      const r = await fetch((BASE_API||'') + '/me', { credentials: 'include' });
-      const j = await r.json();
-      if(j) {
-        // already logged in
-        window.location.href = '/';
-      }
-    } catch(e){}
-  })();
+  const j = await r.json();
+  if (j.success) location.href = '/';
+  else alert(j.error || 'Failed');
+};
+document.getElementById('discord').onclick = ()=> location.href = BASE + '/auth/discord';
 </script>
 </body>
 </html>
