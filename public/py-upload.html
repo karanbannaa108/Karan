@@ -1,0 +1,36 @@
+<!doctype html>
+<html>
+<head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Upload Python Bot</title>
+<style>body{font-family:Arial;background:#071427;color:#fff;padding:30px}.card{max-width:700px;margin:auto;background:#0b1723;padding:20px;border-radius:10px}input,textarea{width:100%;padding:10px;margin:8px 0;border-radius:6px;border:1px solid rgba(255,255,255,0.05);background:#071427;color:#fff}button{padding:10px;border-radius:6px;background:#7b2eff;color:#fff;border:0;cursor:pointer}</style>
+</head>
+<body>
+<div class="card">
+  <h2>Upload Python Bot (.py or .zip)</h2>
+  <input type="file" id="file"><br>
+  <input id="name" placeholder="Optional friendly name">
+  <button id="upload">Upload</button>
+  <div id="res" style="margin-top:12px"></div>
+  <div style="margin-top:16px"><a href="/bots.html" style="color:#9df">Manage Bots</a></div>
+</div>
+
+<script>
+const BASE = window.BASE_API || '';
+
+document.getElementById('upload').onclick = async ()=>{
+  const f = document.getElementById('file').files[0];
+  const name = document.getElementById('name').value.trim();
+  if(!f) return alert('Select file');
+  const form = new FormData();
+  form.append('botfile', f);
+  const r = await fetch(BASE + '/upload-bot', { method:'POST', body: form, credentials:'include' });
+  const j = await r.json();
+  if (j.ok) {
+    document.getElementById('res').innerText = 'Uploaded bot id: ' + j.botId;
+  } else {
+    document.getElementById('res').innerText = 'Upload error: ' + (j.error || 'unknown');
+  }
+};
+</script>
+</body>
+</html>
