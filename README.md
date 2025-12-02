@@ -1,22 +1,27 @@
-# KaranZeroDay — Full GitHub project (Frontend + Secure Backend)
+# KaranZeroDay Backend (Postgres, Discord OAuth, Sessions)
 
-This repo contains a modern animated dashboard (frontend) and a secure Node.js backend with:
-- Local username/password login (bcrypt)
-- Discord OAuth login
-- Admin-only protected endpoints (role === 'admin')
-- SQLite persistence
-- Session-based auth (express-session + connect-sqlite3)
-- Export/Import + demo features in frontend
+## Setup (local)
+1. git clone ...
+2. npm install
+3. create .env with DATABASE_URL, SESSION_SECRET, FRONTEND_URL, DISCORD_*
+4. npm run create-admin
+5. npm start
+6. Open http://localhost:3000/
 
-## Files
-- `public/index.html` — Modern dashboard (A)
-- `public/admin.html` — Admin-only page (B)
-- `public/login.html` — Login page (password & Discord)
-- `server.js` — Backend server (API, auth, OAuth)
-- `createAdmin.js` — CLI to create initial admin user
-- `package.json`, `.gitignore`
+## Deploy (Railway)
+1. Push repo to GitHub.
+2. On Railway create new project → Deploy from GitHub.
+3. In Railway, set environment variables:
+   - DATABASE_URL (Railway Postgres connection string)
+   - SESSION_SECRET (strong random)
+   - FRONTEND_URL = https://your-vercel-app.vercel.app
+   - DISCORD_CLIENT_ID, DISCORD_CLIENT_SECRET
+   - DISCORD_REDIRECT = https://your-railway-url.up.railway.app/auth/discord/callback
+   - NODE_ENV = production
+4. Deploy. Railway will provision Postgres and run `npm install` then start.
+5. In Railway "Schedule" or "Shell" run `npm run create-admin` to create your admin.
 
-## Quick Local Setup
-1. Clone repo and `cd kz-dashboard-auth`.
-2. `npm install`
-3. Create `.env` file with:
+## Deploy frontend (Vercel)
+- Point Vercel to repo and set Output Directory: `public`.
+- If frontend needs to call backend cross-domain, edit `public/login.html` & `public/admin.html` to set `const BASE_API = 'https://your-railway-url.up.railway.app'` or configure environment.
+- Use `credentials: 'include'` in fetch (already in templates).
