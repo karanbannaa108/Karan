@@ -1,0 +1,67 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width">
+  <title>Login — KaranZeroDay</title>
+  <style>
+    body{font-family:Inter,system-ui,Arial;background:#071428;color:#fff;display:flex;align-items:center;justify-content:center;height:100vh;margin:0}
+    .card{width:360px;padding:22px;border-radius:12px;background:rgba(255,255,255,0.03)}
+    input{width:100%;padding:10px;margin:8px 0;border-radius:8px;border:1px solid rgba(255,255,255,0.06);background:transparent;color:#fff}
+    button{padding:10px;border-radius:8px;border:0;background:#7c3aed;color:white;width:100%}
+    .row{display:flex;gap:8px}
+    .note{color:#9fb0c8;font-size:13px;margin-top:8px}
+  </style>
+</head>
+<body>
+  <div class="card">
+    <h2>KaranZeroDay — Login</h2>
+    <form id="loginForm">
+      <input id="name" placeholder="Username" required />
+      <input id="password" type="password" placeholder="Password" required />
+      <button type="submit">Login</button>
+    </form>
+
+    <div style="margin-top:10px" class="row">
+      <a id="discordBtn" href="#" style="flex:1;text-align:center;padding:10px;border-radius:8px;background:#5865f2;color:white;text-decoration:none">Login with Discord</a>
+    </div>
+
+    <div class="note">If your frontend & backend are on different domains, the page is configured to send cookies with credentials. Configure backend `FRONTEND_URL` accordingly.</div>
+    <div id="msg" style="color:#f88;margin-top:8px"></div>
+  </div>
+
+<script>
+/*
+  Edit BASE_API if your backend is on a different host (Railway).
+  Example:
+  const BASE_API = 'https://kz-backend.up.railway.app';
+*/
+const BASE_API = window.__BASE_API__ || ''; // if empty, same-origin
+
+document.getElementById('discordBtn').href = (BASE_API || '') + '/auth/discord';
+
+document.getElementById('loginForm').addEventListener('submit', async (e) => {
+  e.preventDefault();
+  const name = document.getElementById('name').value;
+  const password = document.getElementById('password').value;
+  try {
+    const res = await fetch((BASE_API || '') + '/auth/login', {
+      method: 'POST',
+      credentials: 'include', // IMPORTANT for session cookie
+      headers: {'Content-Type':'application/json'},
+      body: JSON.stringify({ name, password })
+    });
+    const data = await res.json();
+    if (data && data.success) {
+      // redirect to home
+      window.location.href = (BASE_API ? window.location.origin : '') + '/';
+    } else {
+      document.getElementById('msg').textContent = data?.error || 'Login failed';
+    }
+  } catch(err){
+    document.getElementById('msg').textContent = 'Server error';
+  }
+});
+</script>
+</body>
+</html>
